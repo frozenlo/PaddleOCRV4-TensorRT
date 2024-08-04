@@ -3,7 +3,8 @@
 * cuda 12.4
 * cudnn 8
 * tensorrt-cuda12.1-trt10.1.0.27
-* opencv 4.10.0
+* opencv 4.10.0 with cuda support
+* opencv_freetype (optional, If you want show result in chinese)
 
 ## How to run
 * modify the OpenCV_DIR, fmt_DIR, TensorRT_DIR, spglog_INCLUDE_DIRS path in **CmakeLists.txt**
@@ -16,7 +17,11 @@
  ./rec
 ```
 ## Result
-![image](https://user-images.githubusercontent.com/87298337/179940172-4182773c-5786-4d5e-a1e1-8a63e98b4f10.png)
+![image](result.jpg)
+
+In my PC => 12700 + rtx2080.
+The time consumption is like these with no model warmup.
+![image](time.png)
 
 # Thanks to
 
