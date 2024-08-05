@@ -22,7 +22,7 @@ namespace OCR {
         TextDetect() : Engine(){};
         void Model_Infer(const cv::cuda::GpuMat& img, vector<vector<vector<int>>> &boxes, vector<double> &times);
         void Model_Init(std::string_view det_engine_path, std::string_view det_onnx_path);
-        virtual ~TextDetect();
+        uint32_t getMaxOutputLength(nvinfer1::Dims tensorShape) const override;
 
     private:
         //config

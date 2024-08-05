@@ -118,6 +118,16 @@ public:
     [[nodiscard]] const std::vector<nvinfer1::Dims3> &getInputDims() const override { return m_inputDims; };
     [[nodiscard]] const std::vector<nvinfer1::Dims> &getOutputDims() const override { return m_outputDims; };
 
+
+    virtual uint32_t getMaxOutputLength(nvinfer1::Dims tensorShape) const {
+        uint32_t outputLength = 1;
+        for (int j = 1; j < tensorShape.nbDims; ++j) {
+            // We ignore j = 0 because that is the batch size, and we will take that
+            // into account when sizing the buffer
+            outputLength *= tensorShape.d[j];
+        }
+        return outputLength;
+    }
     // Utility method for transforming triple nested output array into 2D array
     // Should be used when the output batch size is 1, but there are multiple
     // output feature vectors
@@ -134,6 +144,7 @@ public:
 protected:
     // Build the network
     bool build(const std::string& onnxModelPath, const std::array<float, 3> &subVals, const std::array<float, 3> &divVals, bool normalize);
+
 
     // Converts the engine options into a string
     std::string serializeEngineOptions(const Options &options, const std::string &onnxModelPath);

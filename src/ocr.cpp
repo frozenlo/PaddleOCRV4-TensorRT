@@ -55,7 +55,7 @@ vector<pair<vector<string>, double>> ocr::Model_Infer(cv::Mat &inputImg, vector<
     std::vector<int> idx_map;
     vector<pair<vector<string>, double>> rec_res;
 
-    for (int i = 0; i < 1; ++i) {
+    for (int i = 0; i < 1000; ++i) {
         idx_map.clear();
         boxes.clear();
         rec_res.clear();
@@ -94,12 +94,12 @@ vector<pair<vector<string>, double>> ocr::Model_Infer(cv::Mat &inputImg, vector<
         ocr_times.push_back(det_times[i] + rec_times[i]);
     }
 
-    spdlog::info("crop image type using gpu => {}ms", (double)(cropDuration.count() * 1000));
+    spdlog::info("crop image type using gpu => {} s", (double)(cropDuration.count()));
     std::string timeName[3] = {"preprocess", "infer", "postprocess"};
 
     for (int i = 0; i < 3; ++i) {
-        spdlog::info("det {} times {} ms", timeName[i], det_times[i]);
-        spdlog::info("rec {} times {} ms", timeName[i], rec_times[i]);
+        spdlog::info("det {} times {} s", timeName[i], det_times[i]);
+        spdlog::info("rec {} times {} s", timeName[i], rec_times[i]);
     }
 
     //// visualization

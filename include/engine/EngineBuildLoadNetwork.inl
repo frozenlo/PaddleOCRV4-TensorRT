@@ -102,6 +102,10 @@ bool Engine<T>::loadNetwork(const std::string& trtModelPath, const std::array<fl
     m_outputDims.clear();
     m_IOTensorNames.clear();
 
+    // Create a cuda stream
+    cudaStream_t stream;
+    Util::checkCudaErrorCode(cudaStreamCreate(&stream));
+
     // Allocate GPU memory for input and output buffers
     m_outputLengths.clear();
     for (int i = 0; i < m_engine->getNbIOTensors(); ++i) {
@@ -118,6 +122,11 @@ bool Engine<T>::loadNetwork(const std::string& trtModelPath, const std::array<fl
                 spdlog::error(msg);
                 throw std::runtime_error(msg);
             }
+
+            // Don't need to allocate memory for inputs as we will be using the OpenCV
+            // GpuMat buffer directly.
+
+            // Store the input dims for later use
             m_inputDims.emplace_back(tensorShape.d[1], tensorShape.d[2], tensorShape.d[3]);
             m_inputBatchSize = tensorShape.d[0];
         } else if (tensorType == nvinfer1::TensorIOMode::kOUTPUT) {
@@ -152,17 +161,27 @@ bool Engine<T>::loadNetwork(const std::string& trtModelPath, const std::array<fl
                 spdlog::error(msg);
                 throw std::runtime_error(msg);
             }
+
+            // The binding is an output
             m_outputDims.push_back(tensorShape);
+            uint32_t outputLength = getMaxOutputLength(tensorShape);
+
+            m_outputLengths.push_back(outputLength);
             // Now size the output buffer appropriately, taking into account the max
             // possible batch size (although we could actually end up using less
             // memory)
-            //Util::checkCudaErrorCode(cudaMallocAsync(&m_buffers[i], outputLength * m_options.maxBatchSize * sizeof(T), stream));
+            Util::checkCudaErrorCode(cudaMallocAsync(&m_buffers[i], outputLength * m_options.maxBatchSize * sizeof(T), stream));
         } else {
             auto msg = "Error, IO Tensor is neither an input or output!";
             spdlog::error(msg);
             throw std::runtime_error(msg);
         }
     }
+
+    // Synchronize and destroy the cuda stream
+    Util::checkCudaErrorCode(cudaStreamSynchronize(stream));
+    Util::checkCudaErrorCode(cudaStreamDestroy(stream));
+
     return true;
     // Read the serialized model from disk
     
@@ -252,15 +271,36 @@ bool Engine<T>::build(const std::string& onnxModelPath, const std::array<float, 
 
     // Register a single optimization profile
     nvinfer1::IOptimizationProfile *optProfile = builder->createOptimizationProfile();
+    for (int32_t i = 0; i < numInputs; ++i) {
+        // Must specify dimensions for all the inputs the model expects.
+        const auto input = network->getInput(i);
+        const auto inputName = input->getName();
+        const auto inputDims = input->getDimensions();
+        int32_t inputC = inputDims.d[1];
+        int32_t inputH = inputDims.d[2];
+        int32_t inputW = inputDims.d[3];
+
+        bool haveDynamicDims = inputC == -1 || inputH == -1 || inputW == -1;
+
+        // Specify the optimization profile`
+        if (haveDynamicDims) {
+            optProfile->setDimensions(network->getInput(0)->getName(), nvinfer1::OptProfileSelector::kMIN,
+                nvinfer1::Dims4(m_options.MIN_DIMS_[0], m_options.MIN_DIMS_[1], m_options.MIN_DIMS_[2], m_options.MIN_DIMS_[3]));
+            optProfile->setDimensions(network->getInput(0)->getName(), nvinfer1::OptProfileSelector::kOPT,
+                nvinfer1::Dims4(m_options.OPT_DIMS_[0], m_options.OPT_DIMS_[1], m_options.OPT_DIMS_[2], m_options.OPT_DIMS_[3]));
+            optProfile->setDimensions(network->getInput(0)->getName(), nvinfer1::OptProfileSelector::kMAX,
+                nvinfer1::Dims4(m_options.MAX_DIMS_[0], m_options.MAX_DIMS_[1], m_options.MAX_DIMS_[2], m_options.MAX_DIMS_[3]));
+        } else {
+            optProfile->setDimensions(inputName, nvinfer1::OptProfileSelector::kMIN,
+                                      nvinfer1::Dims4(m_options.optBatchSize, inputC, inputH, inputW));
+            optProfile->setDimensions(inputName, nvinfer1::OptProfileSelector::kOPT,
+                nvinfer1::Dims4(m_options.optBatchSize, inputC, inputH, inputW));
+            optProfile->setDimensions(inputName, nvinfer1::OptProfileSelector::kMAX,
+                nvinfer1::Dims4(m_options.maxBatchSize, inputC, inputH, inputW));
+        }			  
+		 
     
-    optProfile->setDimensions(network->getInput(0)->getName(), nvinfer1::OptProfileSelector::kMIN,
-        nvinfer1::Dims4(m_options.MIN_DIMS_[0], m_options.MIN_DIMS_[1], m_options.MIN_DIMS_[2], m_options.MIN_DIMS_[3]));    
-    optProfile->setDimensions(network->getInput(0)->getName(), nvinfer1::OptProfileSelector::kOPT,
-        nvinfer1::Dims4(m_options.OPT_DIMS_[0], m_options.OPT_DIMS_[1], m_options.OPT_DIMS_[2], m_options.OPT_DIMS_[3]));
-    optProfile->setDimensions(network->getInput(0)->getName(), nvinfer1::OptProfileSelector::kMAX,
-        nvinfer1::Dims4(m_options.MAX_DIMS_[0], m_options.MAX_DIMS_[1], m_options.MAX_DIMS_[2], m_options.MAX_DIMS_[3]));
-    
-    
+    }
     config->addOptimizationProfile(optProfile);
     
     // Set the precision level
