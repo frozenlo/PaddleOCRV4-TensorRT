@@ -35,7 +35,8 @@ public:
 private:
     //task
     std::vector<std::string> label_list_;
-    string label_path = "../../../models/ppocr_keys_v1.txt";
+    string label_path = "../../../models/en_dict.txt";
+    //string label_path = "../../../models/ppocr_keys_v1.txt";
 
 
     // input image
