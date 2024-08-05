@@ -20,7 +20,7 @@
 ![image](result.jpg)
 
 In my PC => 12700 + rtx2080.
-The time consumption is like these with no model warmup.
+The time consumption is like these with 50 times model warmup and 1000 times inference.
 ![image](time.png)
 
 # Thanks to

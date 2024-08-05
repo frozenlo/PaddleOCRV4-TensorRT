@@ -31,7 +31,7 @@ namespace OCR {
     }
 
     void TextRec::Model_Infer(std::vector<cv::cuda::GpuMat>& img_list, std::vector<pair<vector<string>, double>>& rec_res, vector<int>& idx_map,
-        vector<double>& times) {
+        vector<double>* times) {
         std::chrono::duration<float> preprocess_diff = std::chrono::steady_clock::now() - std::chrono::steady_clock::now();
         std::chrono::duration<float> inference_diff = std::chrono::steady_clock::now() - std::chrono::steady_clock::now();
         std::chrono::duration<float> postprocess_diff = std::chrono::steady_clock::now() - std::chrono::steady_clock::now();
@@ -183,15 +183,17 @@ namespace OCR {
             // cout<<"rec res size is equal to indices size"<<endl;
             idx_map = copy_indices;
         }
-        if (times.empty()) {
-            times.push_back(double(preprocess_diff.count()));
-            times.push_back(double(inference_diff.count()));
-            times.push_back(double(postprocess_diff.count()));
-        }
-        else {
-            times[0] += double(preprocess_diff.count());
-            times[1] += double(inference_diff.count());
-            times[2] += double(postprocess_diff.count());
+        if (times != NULL) {
+            if (times->empty()) {
+                times->push_back(double(preprocess_diff.count()));
+                times->push_back(double(inference_diff.count()));
+                times->push_back(double(postprocess_diff.count()));
+            }
+            else {
+                times->at(0) += double(preprocess_diff.count());
+                times->at(1) += double(inference_diff.count());
+                times->at(2) += double(postprocess_diff.count());
+            }
         }
 
     }

@@ -29,7 +29,7 @@ public:
     };
     void Model_Init(std::string_view det_engine_path, std::string_view det_onnx_path);
     void Model_Infer(std::vector<cv::cuda::GpuMat> &img_list, std::vector<pair<vector<string>, double>> &rec_res, vector<int> &idx_map,
-                     vector<double> &times);
+                     vector<double>* times);
     uint32_t getMaxOutputLength(nvinfer1::Dims tensorShape) const override;
 
 private:

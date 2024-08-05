@@ -18,8 +18,8 @@ int main(int argc, char *argv[]) {
         argv[1] = "--det_onnx_model";
         argv[2] = "..\\..\\..\\models\\det_model.onnx";
         argv[3] = "--input";
-        //argv[4] = "..\\..\\..\\inputs\\12.jpg";
-        argv[4] = "I:\\img\\cap\\a1.png";
+        argv[4] = "..\\..\\..\\inputs\\12.jpg";
+        //argv[4] = "I:\\img\\cap\\a1.png";
         argv[5] = "--rec_onnx_model";
         argv[6] = "..\\..\\..\\models\\rec_model.onnx";
     }

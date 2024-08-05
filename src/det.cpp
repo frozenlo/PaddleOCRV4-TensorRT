@@ -27,7 +27,7 @@ namespace OCR {
         return m_options.MAX_DIMS_[2] * m_options.MAX_DIMS_[3];
     }
 
-    void TextDetect::Model_Infer(const cv::cuda::GpuMat& gpuImg, vector<vector<vector<int>>>& boxes, vector<double>& times) {
+    void TextDetect::Model_Infer(const cv::cuda::GpuMat& gpuImg, vector<vector<vector<int>>>& boxes, vector<double>* times) {
 
         ////////////////////// preprocess ////////////////////////
         float ratio_h{}; // = resize_h / h
@@ -48,15 +48,6 @@ namespace OCR {
 
         this->normalize_op_.Run(resizedImg, this->mean_, this->scale_, true);
         this->permute_op_.Run(resizedImg);
-
-        //////////////////////// inference //////////////////////////
-        // void *buffers[2];
-        //  为buffer[0]指针（输入）定义空间大小
-        // float *inBlob = new float[1 * 3 * resize_img.rows * resize_img.cols];
-        // this->permute_op_.Run(&resize_img, inBlob);
-
-        // Let's use a batch size which matches that which we set the
-        // Options.optBatchSize option
 
         size_t batchSize = m_options.optBatchSize;
         auto preprocess_end = std::chrono::steady_clock::now();
@@ -134,23 +125,25 @@ namespace OCR {
         }
 
         cv::imwrite("test.png", showImg);*/
-        auto postprocess_end = std::chrono::steady_clock::now();
         //std::cout << "Detected boxes num: " << boxes.size() << endl;
 
-        std::chrono::duration<float> preprocess_diff = preprocess_end - preprocess_start;
-        std::chrono::duration<float> inference_diff = inference_end - inference_start;
-        std::chrono::duration<float> postprocess_diff = postprocess_end - postprocess_start;
-
-        if (times.empty()) {
-            times.push_back(double(preprocess_diff.count()));
-            times.push_back(double(inference_diff.count()));
-            times.push_back(double(postprocess_diff.count()));
+        if (times != NULL) {
+            auto postprocess_end = std::chrono::steady_clock::now();
+            std::chrono::duration<float> preprocess_diff = preprocess_end - preprocess_start;
+            std::chrono::duration<float> inference_diff = inference_end - inference_start;
+            std::chrono::duration<float> postprocess_diff = postprocess_end - postprocess_start;
+            if (times->empty()) {
+                times->push_back(double(preprocess_diff.count()));
+                times->push_back(double(inference_diff.count()));
+                times->push_back(double(postprocess_diff.count()));
+            }
+            else {
+                times->at(0) += double(preprocess_diff.count());
+                times->at(1) += double(inference_diff.count());
+                times->at(2) += double(postprocess_diff.count());
+            }
         }
-        else {
-            times[0] += double(preprocess_diff.count());
-            times[1] += double(inference_diff.count());
-            times[2] += double(postprocess_diff.count());
-        }
+        
 
     }
 }

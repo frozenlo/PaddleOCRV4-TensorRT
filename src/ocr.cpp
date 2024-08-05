@@ -50,17 +50,35 @@ vector<pair<vector<string>, double>> ocr::Model_Infer(cv::Mat &inputImg, vector<
     std::vector<double> det_times;
     std::vector<double> rec_times;
 
-
     std::vector<std::vector<std::vector<int>>> boxes;
     std::vector<int> idx_map;
     vector<pair<vector<string>, double>> rec_res;
+
+    for (int i = 0; i < 50; ++i) {
+        idx_map.clear();
+        boxes.clear();
+        rec_res.clear();
+
+        this->td->Model_Infer(gpuImg, boxes, NULL);
+        std::vector<cv::cuda::GpuMat> img_list;
+        for (int j = 0; j < boxes.size(); j++) {
+            cv::cuda::GpuMat crop_img;
+            crop_img = Utility::GetRotateCropImage(gpuImg, boxes[j]);
+            img_list.push_back(crop_img);
+        }
+  
+        this->tr->Model_Infer(img_list, rec_res, idx_map, NULL);
+    }
+
+    det_times.clear();
+    rec_times.clear();
 
     for (int i = 0; i < 1000; ++i) {
         idx_map.clear();
         boxes.clear();
         rec_res.clear();
 
-        this->td->Model_Infer(gpuImg, boxes, det_times);
+        this->td->Model_Infer(gpuImg, boxes, &det_times);
         auto cropBegin = std::chrono::steady_clock::now();
 
         std::vector<cv::cuda::GpuMat> img_list;
@@ -78,7 +96,7 @@ vector<pair<vector<string>, double>> ocr::Model_Infer(cv::Mat &inputImg, vector<
         cropDuration += cropEnd - cropBegin;
         // cout<<"finish detect"<<endl;
 
-        this->tr->Model_Infer(img_list, rec_res, idx_map, rec_times);
+        this->tr->Model_Infer(img_list, rec_res, idx_map, &rec_times);
     }
     
     // 根据idx_map调整boxes的顺序， 并删除掉boxes中识别结果为空的box
