@@ -18,7 +18,8 @@ int main(int argc, char *argv[]) {
         argv[1] = "--det_onnx_model";
         argv[2] = "..\\..\\..\\models\\det_model.onnx";
         argv[3] = "--input";
-        argv[4] = "..\\..\\..\\inputs\\12.jpg";
+        //argv[4] = "..\\..\\..\\inputs\\12.jpg";
+        argv[4] = "I:\\img\\cap\\a1.png";
         argv[5] = "--rec_onnx_model";
         argv[6] = "..\\..\\..\\models\\rec_model.onnx";
     }
@@ -54,14 +55,15 @@ int main(int argc, char *argv[]) {
     // In the following section we populate the input vectors to later pass for
     // inference
     
-    
-    ocr instance;
-    instance.Model_Init(arguments.det_trt_model, arguments.det_onnx_model, arguments.rec_trt_model, arguments.rec_onnx_model);
-    std::vector<std::vector<std::vector<int>>> boxes;
-    std::vector<double> det_times;
+    ocr instance;    
     vector<double> ocr_times;
-    instance.Model_Infer(cpuImg, ocr_times);
 
+    instance.Model_Init(arguments.det_trt_model, arguments.det_onnx_model, arguments.rec_trt_model, arguments.rec_onnx_model);
+    _CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
+    instance.Model_Infer(cpuImg, ocr_times);
+    _CrtDumpMemoryLeaks();
+
+    system("pause");
     /*TextRec r;
     r.Model_Init(arguments.rec_trt_model, arguments.rec_onnx_model);
     cv::Mat ii = cv::imread("i:\\test27.png");

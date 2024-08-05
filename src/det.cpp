@@ -94,20 +94,18 @@ void TextDetect::Model_Infer(const cv::cuda::GpuMat &gpuImg, vector<vector<vecto
     cv::Mat pred;
     result.download(pred);
 
-    cv::cuda::GpuMat mask;
-
-    cv::cuda::threshold(result, mask, det_db_thresh_, 1, cv::THRESH_BINARY);
-
-    mask.convertTo(mask, CV_8UC1, 255.0f);
-
     cv::Mat bitmap;
-    mask.download(bitmap);
+
+    cv::threshold(pred, bitmap, det_db_thresh_, 1, cv::THRESH_BINARY);
+
+    bitmap.convertTo(bitmap, CV_8UC1, 255.0f);
 
     //cv::imwrite("test1.png", bitmap);
 
     // Synchronize the cuda stream
     Util::checkCudaErrorCode(cudaStreamSynchronize(inferenceCudaStream));
-    Util::checkCudaErrorCode(cudaStreamDestroy(inferenceCudaStream));
+    Util::checkCudaErrorCode(cudaFreeAsync(m_buffers[1], inferenceCudaStream));
+    Util::checkCudaErrorCode(cudaStreamDestroy(inferenceCudaStream)); 
 
     auto inference_end = std::chrono::steady_clock::now();
 
@@ -134,14 +132,22 @@ void TextDetect::Model_Infer(const cv::cuda::GpuMat &gpuImg, vector<vector<vecto
 
     cv::imwrite("test.png", showImg);*/
     auto postprocess_end = std::chrono::steady_clock::now();
-    std::cout << "Detected boxes num: " << boxes.size() << endl;
+    //std::cout << "Detected boxes num: " << boxes.size() << endl;
 
     std::chrono::duration<float> preprocess_diff = preprocess_end - preprocess_start;
-    times.push_back(double(preprocess_diff.count() * 1000));
     std::chrono::duration<float> inference_diff = inference_end - inference_start;
-    times.push_back(double(inference_diff.count() * 1000));
     std::chrono::duration<float> postprocess_diff = postprocess_end - postprocess_start;
-    times.push_back(double(postprocess_diff.count() * 1000));
+
+    if (times.empty()) {
+        times.push_back(double(preprocess_diff.count() * 1000));
+        times.push_back(double(inference_diff.count() * 1000));
+        times.push_back(double(postprocess_diff.count() * 1000));
+    }
+    else {
+        times[0] += double(preprocess_diff.count() * 1000);
+        times[1] += double(inference_diff.count() * 1000);
+        times[2] += double(postprocess_diff.count() * 1000);
+    }
 
 }
 

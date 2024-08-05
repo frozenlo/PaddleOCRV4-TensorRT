@@ -41,6 +41,4 @@ cmake-build-*
 
 /.vs
 *.sh
-/models/en_PP-OCRv3_det_infer.onnx
-/models/en_PP-OCRv4_rec_infer.onnx
 *.onnx

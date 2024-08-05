@@ -45,32 +45,42 @@ vector<pair<vector<string>, double>> ocr::Model_Infer(cv::Mat &inputImg, vector<
     gpuImg.upload(inputImg);
     cv::cuda::cvtColor(gpuImg, gpuImg, cv::COLOR_BGR2RGB);
 
-    std::vector<std::vector<std::vector<int>>> boxes;
+    std::chrono::duration<float> cropDuration = std::chrono::steady_clock::now() - std::chrono::steady_clock::now();
+
     std::vector<double> det_times;
-    this->td->Model_Infer(gpuImg, boxes, det_times);
-    spdlog::info("crop image start");
-    auto cropBegin = std::chrono::steady_clock::now();
+    std::vector<double> rec_times;
 
-    std::vector<cv::cuda::GpuMat> img_list;
-    for (int j = 0; j < boxes.size(); j++) {
-        cv::cuda::GpuMat crop_img;
 
-        crop_img = Utility::GetRotateCropImage(gpuImg, boxes[j]);
-        img_list.push_back(crop_img);
-        // cv::imwrite(to_string(this->count_name_)+"_crop_"+to_string(j)+".png", crop_img);
-        //  cv::imshow(to_string(this->count_name_)+"_crop_"+to_string(j)+".png", crop_img);
-        //  cv::waitKey(0);
-    }
-
-    auto cropEnd = std::chrono::steady_clock::now();
-    std::chrono::duration<float> cropDuration = cropEnd - cropBegin;
-    spdlog::info("crop image type using gpu => {}ms", (double)(cropDuration.count() * 1000));
-    // cout<<"finish detect"<<endl;
-
+    std::vector<std::vector<std::vector<int>>> boxes;
+    std::vector<int> idx_map;
     vector<pair<vector<string>, double>> rec_res;
-    vector<int> idx_map;
-    vector<double> rec_times;
-    this->tr->Model_Infer(img_list, rec_res, idx_map, rec_times);
+
+    for (int i = 0; i < 1; ++i) {
+        idx_map.clear();
+        boxes.clear();
+        rec_res.clear();
+
+        this->td->Model_Infer(gpuImg, boxes, det_times);
+        auto cropBegin = std::chrono::steady_clock::now();
+
+        std::vector<cv::cuda::GpuMat> img_list;
+        for (int j = 0; j < boxes.size(); j++) {
+            cv::cuda::GpuMat crop_img;
+
+            crop_img = Utility::GetRotateCropImage(gpuImg, boxes[j]);
+            img_list.push_back(crop_img);
+            // cv::imwrite(to_string(this->count_name_)+"_crop_"+to_string(j)+".png", crop_img);
+            //  cv::imshow(to_string(this->count_name_)+"_crop_"+to_string(j)+".png", crop_img);
+            //  cv::waitKey(0);
+        }
+
+        auto cropEnd = std::chrono::steady_clock::now();
+        cropDuration += cropEnd - cropBegin;
+        // cout<<"finish detect"<<endl;
+
+        this->tr->Model_Infer(img_list, rec_res, idx_map, rec_times);
+    }
+    
     // 根据idx_map调整boxes的顺序， 并删除掉boxes中识别结果为空的box
     // cout<<"origin box size is "<< boxes.size()<<endl;
     vector<vector<vector<int>>> erase_nan_boxes;
@@ -84,6 +94,7 @@ vector<pair<vector<string>, double>> ocr::Model_Infer(cv::Mat &inputImg, vector<
         ocr_times.push_back(det_times[i] + rec_times[i]);
     }
 
+    spdlog::info("crop image type using gpu => {}ms", (double)(cropDuration.count() * 1000));
     std::string timeName[3] = {"preprocess", "infer", "postprocess"};
 
     for (int i = 0; i < 3; ++i) {
@@ -100,6 +111,8 @@ vector<pair<vector<string>, double>> ocr::Model_Infer(cv::Mat &inputImg, vector<
     this->count_name_++;
     if (this->count_name_ % 100000 == 0)
         this->count_name_ = 0;
+
+    gpuImg.release();
 
     return rec_res;
 }

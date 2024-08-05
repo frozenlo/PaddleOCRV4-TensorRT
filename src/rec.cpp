@@ -114,9 +114,9 @@ void TextRec::Model_Infer(std::vector<cv::cuda::GpuMat>& img_list, std::vector<p
         
         // 从gpu取数据到cpu上
         cudaStreamSynchronize(inferenceCudaStream);
+        Util::checkCudaErrorCode(cudaFreeAsync(m_buffers[1], inferenceCudaStream));
         // Release stream and buffers
         cudaStreamDestroy(inferenceCudaStream);
-
         auto inference_end = std::chrono::steady_clock::now();
         inference_diff += inference_end - inference_start;
 
@@ -178,10 +178,17 @@ void TextRec::Model_Infer(std::vector<cv::cuda::GpuMat>& img_list, std::vector<p
         // cout<<"rec res size is equal to indices size"<<endl;
         idx_map = copy_indices;
     }
-
-    times.push_back(double(preprocess_diff.count() * 1000));
-    times.push_back(double(inference_diff.count() * 1000));
-    times.push_back(double(postprocess_diff.count() * 1000));
+    if (times.empty()) {
+        times.push_back(double(preprocess_diff.count() * 1000));
+        times.push_back(double(inference_diff.count() * 1000));
+        times.push_back(double(postprocess_diff.count() * 1000));
+    }
+    else {
+        times[0] += double(preprocess_diff.count() * 1000);
+        times[1] += double(inference_diff.count() * 1000);
+        times[2] += double(postprocess_diff.count() * 1000);
+    }
+    
 }
 TextRec::~TextRec() {}
 
