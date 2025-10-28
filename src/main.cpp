@@ -30,11 +30,12 @@ int main(int argc, char* argv[]) {
         start += toCopy;
 
         argv[2] = pDet.get() + start;
-        toCopy = sizeof("..\\..\\..\\models\\en_PP-OCRv3_det_infer.onnx");
+        //toCopy = sizeof("..\\..\\..\\models\\en_PP-OCRv3_det_infer.onnx");
+        toCopy = sizeof("..\\..\\..\\models\\det_model.onnx");
         if (toCopy + start > 1024){
             return -1;
         }
-        strcpy(pDet.get() + start, "..\\..\\..\\models\\en_PP-OCRv3_det_infer.onnx");
+        strcpy(pDet.get() + start, "..\\..\\..\\models\\det_model.onnx");
         pDet.get()[start + toCopy - 1] = '\0';
         start += toCopy;
 
@@ -66,11 +67,12 @@ int main(int argc, char* argv[]) {
         start += toCopy;
 
         argv[6] = pDet.get() + start;
-        toCopy = sizeof("..\\..\\..\\models\\en_PP-OCRv4_rec_infer.onnx");
+        //toCopy = sizeof("..\\..\\..\\models\\en_PP-OCRv4_rec_infer.onnx");
+        toCopy = sizeof("..\\..\\..\\models\\rec_model.onnx");
         if (toCopy + start > 1024){
             return -1;
         }
-        strcpy(pDet.get() + start, "..\\..\\..\\models\\en_PP-OCRv4_rec_infer.onnx");
+        strcpy(pDet.get() + start, "..\\..\\..\\models\\rec_model.onnx");
         pDet.get()[start + toCopy - 1] = '\0';
         //start += toCopy;
     }
