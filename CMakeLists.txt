@@ -5,23 +5,18 @@ project(paddleocrv4-tensorrt)
 include(cmake/ccache.cmake)
 
 # Set C++ version and optimization level
-set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Ofast -DNDEBUG")
 
 # For finding FindTensorRT.cmake
 set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake" ${CMAKE_MODULE_PATH})
 
 
-set(OpenCV_DIR "E:/do2024/opencv/out/install/x64-${CMAKE_BUILD_TYPE}")
-set(fmt_DIR "E:/do2024/fmt-11.0.1/out/build/x64-${CMAKE_BUILD_TYPE}")
-set(TensorRT_DIR "E:/do2024/TensorRT-10.1.0.27")
+set(OpenCV_DIR "E:/do2025/opencv/out/install/x64-${CMAKE_BUILD_TYPE}")
+set(fmt_DIR "E:/do2024/fmt-11.0.1/out/build/x64-Release")
 set(spglog_INCLUDE_DIRS "E:/do2024/spdlog-1.x/include")
+set(TensorRT_DIR "E:/do2025/TensorRT-10.13.3.9")
 
-
-# TODO: Specify the path to TensorRT root dir
-if (NOT TensorRT_DIR)
-    set(TensorRT_DIR E:/do2024/TensorRT-10.1.0.27)
-endif()
 # Use the correct version of CUDA
 #set(CUDA_TOOLKIT_ROOT_DIR /usr/local/cuda)
 # We require CUDA, OpenCV, and TensorRT

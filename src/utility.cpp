@@ -1,6 +1,6 @@
 #pragma once
 #include "utility.h"
-#include <opencv2/freetype.hpp>
+//#include <opencv2/freetype.hpp>
 #include <spdlog/spdlog.h>
 
 namespace fs = std::filesystem;
@@ -50,12 +50,12 @@ void Utility::VisualizeBboxes(const cv::Mat &srcimg, const std::vector<std::vect
         res = res + " " + std::to_string(rec_res[n].second);
 
         // cv::putText(img_vis, res, rook_points[0], cv::FONT_HERSHEY_PLAIN, 1.2, cv::Scalar(0, 0, 255), 2);
-        std::cout << "res:" << res << std::endl;
-
+        //std::cout << "res:" << res << std::endl;
+        spdlog::info("res : {}", res);
         
-        cv::Ptr<cv::freetype::FreeType2> ft2 = cv::freetype::createFreeType2();
-        ft2->loadFontData("c:\\windows\\Fonts\\simsun.ttc", 0);
-        ft2->putText(img_vis, res, rook_points[0], 30, cv::Scalar(0, 0, 255), 1, 8, false);
+        //cv::Ptr<cv::freetype::FreeType2> ft2 = cv::freetype::createFreeType2();
+        //ft2->loadFontData("c:\\windows\\Fonts\\simsun.ttc", 0);
+        //ft2->putText(img_vis, res, rook_points[0], 30, cv::Scalar(0, 0, 255), 1, 8, false);
     }
     cv::imshow("ocr res", img_vis);
     //cv::imwrite("result.jpg", img_vis);

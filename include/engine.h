@@ -58,7 +58,7 @@ struct Options {
     // Directory where the engine file should be saved
     std::string engineFileDir = ".";
 
-    std::array<int, 4> MIN_DIMS_ = {1, 3, 20, 12};
+    std::array<int, 4> MIN_DIMS_ = {1, 3, 256, 256};
     std::array<int, 4> OPT_DIMS_ = {1, 3, 256, 256};
     std::array<int, 4> MAX_DIMS_ = {1, 3, 960, 960};
 };
@@ -119,15 +119,7 @@ public:
     [[nodiscard]] const std::vector<nvinfer1::Dims> &getOutputDims() const override { return m_outputDims; };
 
 
-    virtual uint32_t getMaxOutputLength(nvinfer1::Dims tensorShape) const {
-        uint32_t outputLength = 1;
-        for (int j = 1; j < tensorShape.nbDims; ++j) {
-            // We ignore j = 0 because that is the batch size, and we will take that
-            // into account when sizing the buffer
-            outputLength *= tensorShape.d[j];
-        }
-        return outputLength;
-    }
+    virtual uint32_t getMaxOutputLength(nvinfer1::Dims tensorShape) const;
     // Utility method for transforming triple nested output array into 2D array
     // Should be used when the output batch size is 1, but there are multiple
     // output feature vectors

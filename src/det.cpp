@@ -27,7 +27,7 @@ namespace OCR {
         return m_options.MAX_DIMS_[2] * m_options.MAX_DIMS_[3];
     }
 
-    void TextDetect::Model_Infer(const cv::cuda::GpuMat& gpuImg, vector<vector<vector<int>>>& boxes, vector<double>* times) {
+    void TextDetect::Model_Infer(const cv::cuda::GpuMat& gpuImg, std::vector<std::vector<std::vector<int>>>& boxes, std::vector<double>* times) {
 
         ////////////////////// preprocess ////////////////////////
         float ratio_h{}; // = resize_h / h

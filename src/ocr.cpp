@@ -3,14 +3,14 @@
 # include <stdio.h>
 
 
-void ocr::Model_Init(string det_engine_path, string det_onnx_path, string rec_engine_path, string rec_onnx_path) {
+void ocr::Model_Init(std::string det_engine_path, std::string det_onnx_path, std::string rec_engine_path, std::string rec_onnx_path) {
     this->td = new TextDetect();
     this->tr = new TextRec();
     this->td->Model_Init(det_engine_path, det_onnx_path);
     this->tr->Model_Init(rec_engine_path, rec_onnx_path);
 }
 
-vector<pair<vector<string>, double>> ocr::Model_Infer(cv::Mat &inputImg, vector<double> &ocr_times) {
+std::vector<std::pair<std::vector<std::string>, double>> ocr::Model_Infer(cv::Mat &inputImg, std::vector<double> &ocr_times) {
 
     if (inputImg.channels() == 4) {
         cv::Mat _chs[4];
@@ -52,7 +52,7 @@ vector<pair<vector<string>, double>> ocr::Model_Infer(cv::Mat &inputImg, vector<
 
     std::vector<std::vector<std::vector<int>>> boxes;
     std::vector<int> idx_map;
-    vector<pair<vector<string>, double>> rec_res;
+    std::vector<std::pair<std::vector<std::string>, double>> rec_res;
 
     for (int i = 0; i < 50; ++i) {
         idx_map.clear();
@@ -101,7 +101,7 @@ vector<pair<vector<string>, double>> ocr::Model_Infer(cv::Mat &inputImg, vector<
     
     // 根据idx_map调整boxes的顺序， 并删除掉boxes中识别结果为空的box
     // cout<<"origin box size is "<< boxes.size()<<endl;
-    vector<vector<vector<int>>> erase_nan_boxes;
+    std::vector<std::vector<std::vector<int>>> erase_nan_boxes;
     for (int i = 0; i < idx_map.size(); i++) {
         erase_nan_boxes.push_back(boxes[idx_map[i]]);
     }
@@ -121,7 +121,7 @@ vector<pair<vector<string>, double>> ocr::Model_Infer(cv::Mat &inputImg, vector<
     }
 
     //// visualization
-    std::string img_name = to_string(this->count_name_) + ".png";
+    std::string img_name = std::to_string(this->count_name_) + ".png";
     if (this->visualize_) {
         Utility::VisualizeBboxes(inputImg, erase_nan_boxes, rec_res, img_name); // 名字可变
     }
@@ -135,7 +135,7 @@ vector<pair<vector<string>, double>> ocr::Model_Infer(cv::Mat &inputImg, vector<
     return rec_res;
 }
 
-bool isNumber(const string &str) {
+bool isNumber(const std::string &str) {
     for (char const &c : str) {
         if (isdigit(c) == 0)
             return false;
@@ -143,7 +143,7 @@ bool isNumber(const string &str) {
     return true;
 }
 
-bool isChinese(const string &str) {
+bool isChinese(const std::string &str) {
     unsigned char utf[4] = {0};
     unsigned char unicode[3] = {0};
     bool res = false;
@@ -181,13 +181,13 @@ std::string ocr::TaskProcess(const std::vector<std::pair<std::vector<std::string
                     }
                 }
             }
-            string res = "";
+            std::string res = "";
             if (res_vec.size() == 3) {
                 for (int j = 0; j < 3; j++) {
                     res.append(res_vec[j]);                
                 }
 
-                if (stoi(res.c_str()) >= REC_RANGE_[0] && stoi(res.c_str()) <= REC_RANGE_[1]) {
+                if (std::stoi(res.c_str()) >= REC_RANGE_[0] && std::stoi(res.c_str()) <= REC_RANGE_[1]) {
                     return res;
                 }                    
             }
@@ -196,7 +196,7 @@ std::string ocr::TaskProcess(const std::vector<std::pair<std::vector<std::string
     return "";
 }
 
-string ocr::MultiFrameSmooth(string door_result, int step) {
+std::string ocr::MultiFrameSmooth(std::string door_result, int step) {
     count_img_++;
     results_[door_result]++;
     if (door_result == "")
@@ -204,14 +204,14 @@ string ocr::MultiFrameSmooth(string door_result, int step) {
 
     if (count_img_ == step) {
         int max_value = 0;
-        string res = "";
+        std::string res = "";
         for (auto it = results_.begin(); it != results_.end(); it++) {
             if (it->second > max_value) {
                 max_value = it->second;
                 res = it->first;
             }
         }
-        cout << res << " : " << max_value << endl;
+        std::cout << res << " : " << max_value << std::endl;
         results_.clear();
         count_img_ = 0;
         return res;

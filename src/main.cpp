@@ -6,22 +6,73 @@
 #include <opencv2/cudaimgproc.hpp>
 #include <opencv2/opencv.hpp>
 
-int main(int argc, char *argv[]) {
+int main(int argc, char* argv[]) {
     CommandLineArguments arguments;
+    //HANDLE hOut = GetStdHandle(STD_OUTPUT_HANDLE);
+    //if (hOut != INVALID_HANDLE_VALUE)
+    //    SetConsoleOutputCP(CP_UTF8);
 
     std::string logLevelStr = getLogLevelFromEnvironment();
     spdlog::level::level_enum logLevel = toSpdlogLevel("info");
     spdlog::set_level(logLevel);
-
+    std::unique_ptr<char> pDet = nullptr;
     if (argc == 1) {
         argc = 7;
-        argv[1] = "--det_onnx_model";
-        argv[2] = "..\\..\\..\\models\\det_model.onnx";
-        argv[3] = "--input";
-        argv[4] = "..\\..\\..\\inputs\\12.jpg";
-        //argv[4] = "I:\\img\\cap\\a1.png";
-        argv[5] = "--rec_onnx_model";
-        argv[6] = "..\\..\\..\\models\\rec_model.onnx";
+        pDet = std::make_unique<char>(1024);
+        auto start = 0;
+        argv[1] = pDet.get() + start;
+        auto toCopy = sizeof("--det_onnx_model");
+        if (toCopy + start > 1024){
+            return -1;
+        }
+        strcpy(pDet.get() + start, "--det_onnx_model");
+        pDet.get()[start + toCopy - 1] = '\0';
+        start += toCopy;
+
+        argv[2] = pDet.get() + start;
+        toCopy = sizeof("..\\..\\..\\models\\en_PP-OCRv3_det_infer.onnx");
+        if (toCopy + start > 1024){
+            return -1;
+        }
+        strcpy(pDet.get() + start, "..\\..\\..\\models\\en_PP-OCRv3_det_infer.onnx");
+        pDet.get()[start + toCopy - 1] = '\0';
+        start += toCopy;
+
+        argv[3] = pDet.get() + start;
+        toCopy = sizeof("--input");
+        if (toCopy + start > 1024){
+            return -1;
+        }
+        strcpy(pDet.get() + start, "--input");
+        pDet.get()[start + toCopy - 1] = '\0';
+        start += toCopy;
+
+        argv[4] = pDet.get() + start;
+        toCopy = sizeof("I:\\img\\cap\\cap-shadower1.png");
+        if (toCopy + start > 1024){
+            return -1;
+        }
+        strcpy(pDet.get() + start, "I:\\img\\cap\\cap-shadower1.png");
+        pDet.get()[start + toCopy - 1] = '\0';
+        start += toCopy;
+
+        argv[5] = pDet.get() + start;
+        toCopy = sizeof("--rec_onnx_model");
+        if (toCopy + start > 1024){
+            return -1;
+        }
+        strcpy(pDet.get() + start, "--rec_onnx_model");
+        pDet.get()[start + toCopy - 1] = '\0';
+        start += toCopy;
+
+        argv[6] = pDet.get() + start;
+        toCopy = sizeof("..\\..\\..\\models\\en_PP-OCRv4_rec_infer.onnx");
+        if (toCopy + start > 1024){
+            return -1;
+        }
+        strcpy(pDet.get() + start, "..\\..\\..\\models\\en_PP-OCRv4_rec_infer.onnx");
+        pDet.get()[start + toCopy - 1] = '\0';
+        //start += toCopy;
     }
 
     // Parse the command line arguments
@@ -52,11 +103,14 @@ int main(int argc, char *argv[]) {
         throw std::runtime_error(msg);
     }
 
+    //cpuImg.resize();
+    //cv::resize(cpuImg, cpuImg, cv::Size(256, 100));
+
     // In the following section we populate the input vectors to later pass for
     // inference
     
     ocr instance;    
-    vector<double> ocr_times;
+    std::vector<double> ocr_times;
 
     instance.Model_Init(arguments.det_trt_model, arguments.det_onnx_model, arguments.rec_trt_model, arguments.rec_onnx_model);
     _CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);

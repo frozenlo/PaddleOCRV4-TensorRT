@@ -30,8 +30,80 @@ namespace OCR {
         return (m_options.MAX_DIMS_[3] + 4) / 8 * tensorShape.d[tensorShape.nbDims - 1] * rec_batch_num_;
     }
 
-    void TextRec::Model_Infer(std::vector<cv::cuda::GpuMat>& img_list, std::vector<pair<vector<string>, double>>& rec_res, vector<int>& idx_map,
-        vector<double>* times) {
+    float TextRec::Model_Infer(const cv::Mat& img, std::string& text){
+        cv::cuda::GpuMat gpuImg;
+        gpuImg.upload(img);
+        return Model_Infer(gpuImg, text);
+    }
+
+    float TextRec::Model_Infer(const cv::cuda::GpuMat& img, std::string& text){
+        cv::cuda::GpuMat resize_img;
+        float max_wh_ratio = img.cols / (float)img.rows;
+        this->resize_op_.Run(img, resize_img, max_wh_ratio);
+        this->normalize_op_.Run(resize_img, this->mean_, this->scale_, true);
+        this->permute_op_.Run(resize_img);
+        int batch_width = int(m_options.OPT_DIMS_[2] * max_wh_ratio); // 这个batch里图像的宽度
+        nvinfer1::Dims4 inputDims2 = { 1, 3, m_options.OPT_DIMS_[2], batch_width };
+        m_context->setInputShape(m_IOTensorNames[0].c_str(), inputDims2);
+
+        // Create stream
+        cudaStream_t inferenceCudaStream;
+        CHECK(cudaStreamCreate(&inferenceCudaStream));
+        // m_context->nb
+        auto tensorShape = m_outputDims[0];
+        size_t outputWidth = (batch_width + 4) / 8;
+        size_t outputLength = outputWidth * tensorShape.d[2];
+
+        m_buffers[0] = resize_img.ptr<void>();
+        for (size_t i = 0; i < m_buffers.size(); ++i) {
+            bool status = m_context->setTensorAddress(m_IOTensorNames[i].c_str(), m_buffers[i]);
+            if (!status) {
+                return 0.f;
+            }
+        }
+        m_context->enqueueV3(inferenceCudaStream);
+
+        std::vector<float> imgRes;
+        imgRes.resize(outputLength);
+
+        Util::checkCudaErrorCode(cudaMemcpyAsync(imgRes.data(), static_cast<char*>(m_buffers[1]),
+            outputLength * sizeof(float),
+            cudaMemcpyDeviceToHost, inferenceCudaStream));
+        cudaStreamSynchronize(inferenceCudaStream);
+        //Util::checkCudaErrorCode(cudaFreeAsync(m_buffers[1], inferenceCudaStream));
+        // Release stream and buffers
+        cudaStreamDestroy(inferenceCudaStream);
+
+        std::vector<std::string> str_res;
+        int argmax_idx;
+        int last_index = 0;
+        float score = 0.f;
+        int count = 0;
+        float max_value = 0.0f;
+
+
+        for (int n = 0; n < outputWidth; n++) { // n = 2*l + 1
+            argmax_idx = int(Utility::argmax(imgRes.cbegin() + n * tensorShape.d[2],
+                imgRes.cbegin() + (n + 1) * tensorShape.d[2]));
+            max_value = float(*std::max_element(imgRes.cbegin() + n * tensorShape.d[2],
+                imgRes.cbegin() + (n + 1) * tensorShape.d[2]));
+
+            if (argmax_idx > 0 && (!(n > 0 && argmax_idx == last_index))) {
+                score += max_value;
+                count += 1;
+                str_res.push_back(this->label_list_[argmax_idx]);
+            }
+            last_index = argmax_idx;
+        }
+
+        text = fmt::format("{}", fmt::join(str_res, ""));
+        score /= count;
+        return score;
+
+    }
+
+    void TextRec::Model_Infer(std::vector<cv::cuda::GpuMat>& img_list, std::vector<std::pair<std::vector<std::string>, double>>& rec_res, std::vector<int>& idx_map,
+        std::vector<double>* times) {
         std::chrono::duration<float> preprocess_diff = std::chrono::steady_clock::now() - std::chrono::steady_clock::now();
         std::chrono::duration<float> inference_diff = std::chrono::steady_clock::now() - std::chrono::steady_clock::now();
         std::chrono::duration<float> postprocess_diff = std::chrono::steady_clock::now() - std::chrono::steady_clock::now();
@@ -44,20 +116,20 @@ namespace OCR {
         std::vector<int> indices = Utility::argsort(width_list); // 对宽高比由小到大进行排序，并获取indices
         std::vector<int> copy_indices = indices;
         // 记录一个batch里识别结果为空的idx
-        vector<int> nan_idx;
+        std::vector<int> nan_idx;
 
         for (int begin_img = 0; begin_img < img_num; begin_img += this->rec_batch_num_) {
 
             /////////////////////////// preprocess ///////////////////////////////
             auto preprocess_start = std::chrono::steady_clock::now();
-            int end_img = min(img_num, begin_img + this->rec_batch_num_);
+            int end_img = std::min(img_num, begin_img + this->rec_batch_num_);
             //float max_wh_ratio = m_options.OPT_DIMS_[3] / (float)m_options.OPT_DIMS_[2];
             float max_wh_ratio = 0;
             for (int ino = begin_img; ino < end_img; ino++) {
                 int h = img_list[indices[ino]].rows;
                 int w = img_list[indices[ino]].cols;
                 float wh_ratio = w * 1.0 / h;
-                max_wh_ratio = max(max_wh_ratio, wh_ratio);
+                max_wh_ratio = std::max(max_wh_ratio, wh_ratio);
             } // 找最大的宽高比
 
             std::vector<cv::cuda::GpuMat> norm_img_batch;
@@ -75,7 +147,7 @@ namespace OCR {
             // int batch_width = 1999;
             int batch_width = int(m_options.OPT_DIMS_[2] * max_wh_ratio); // 这个batch里图像的宽度
             cv::cuda::GpuMat dest;
-            this->permute_op_.Run(norm_img_batch, dest);
+            this->permute_batch_op_.Run(norm_img_batch, dest);
 
             auto preprocess_end = std::chrono::steady_clock::now();
             preprocess_diff += preprocess_end - preprocess_start;
@@ -128,7 +200,7 @@ namespace OCR {
             ////////////////////// postprocess ///////////////////////////
             auto postprocess_start = std::chrono::steady_clock::now();
 
-            vector<int> predict_shape;
+            std::vector<int> predict_shape;
             predict_shape.push_back(norm_img_batch.size());
             predict_shape.push_back(outputWidth);
             predict_shape.push_back(tensorShape.d[2]);
@@ -136,7 +208,7 @@ namespace OCR {
             //    predict_shape.push_back(out_dims.d[j]);
 
             for (int m = 0; m < predict_shape[0]; m++) { // m = batch_size
-                pair<vector<string>, double> temp_box_res;
+                std::pair<std::vector<std::string>, double> temp_box_res;
                 std::vector<std::string> str_res;
                 int argmax_idx;
                 int last_index = 0;

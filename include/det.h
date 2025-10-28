@@ -19,8 +19,13 @@
 namespace OCR {
     class TextDetect: public Engine<float>{
     public:
-        TextDetect() : Engine(){};
-        void Model_Infer(const cv::cuda::GpuMat& img, vector<vector<vector<int>>> &boxes, vector<double>* times);
+        TextDetect() : Engine(){
+
+            this->m_options.MIN_DIMS_ = { 1, 3, 32, 32 };
+            this->m_options.OPT_DIMS_ = { 1, 3, 960, 960 };
+            this->m_options.MAX_DIMS_ = { 1, 3, 960, 960 };
+        };
+        void Model_Infer(const cv::cuda::GpuMat& img, std::vector<std::vector<std::vector<int>>> &boxes, std::vector<double>* times);
         void Model_Init(std::string_view det_engine_path, std::string_view det_onnx_path);
         uint32_t getMaxOutputLength(nvinfer1::Dims tensorShape) const override;
 

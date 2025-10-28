@@ -134,3 +134,14 @@ void Int8EntropyCalibrator2::writeCalibrationCache(const void *ptr, std::size_t 
 }
 
 Int8EntropyCalibrator2::~Int8EntropyCalibrator2() { checkCudaErrorCode(cudaFree(m_deviceInput)); };
+
+
+uint32_t Engine<float>::getMaxOutputLength(nvinfer1::Dims tensorShape) const {
+    uint32_t outputLength = 1;
+    for (int j = 1; j < tensorShape.nbDims; ++j) {
+        // We ignore j = 0 because that is the batch size, and we will take that
+        // into account when sizing the buffer
+        outputLength *= tensorShape.d[j];
+    }
+    return outputLength;
+}

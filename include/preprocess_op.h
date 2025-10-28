@@ -1,8 +1,6 @@
 #pragma once
 #include "opencv2/core.hpp"
 
-using namespace std;
-
 namespace OCR {
 
 
@@ -21,8 +19,8 @@ inline void get_resize_ratio(int w, int h, int max_size_len, int &resize_h, int 
     resize_h = int(float(h) * ratio);
     resize_w = int(float(w) * ratio);
 
-    resize_h = max(int(round(float(resize_h) / 32) * 32), 32);
-    resize_w = max(int(round(float(resize_w) / 32) * 32), 32);
+    resize_h = std::max(int(round(float(resize_h) / 32) * 32), 32);
+    resize_w = std::max(int(round(float(resize_w) / 32) * 32), 32);
 }
 
 
