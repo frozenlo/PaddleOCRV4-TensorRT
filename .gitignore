@@ -42,3 +42,7 @@ cmake-build-*
 /.vs
 *.sh
 *.onnx
+/models/en_PP-OCRv3_det_infer.engine.NVIDIAGeForceRTX2080.fp16.1.1.1104
+/models/en_PP-OCRv3_det_infer.engine.NVIDIAGeForceRTX2080.fp16.1.1_101
+/models/en_PP-OCRv4_rec_infer.engine.NVIDIAGeForceRTX2080.fp16.1.1.1104
+/models/en_PP-OCRv4_rec_infer.engine.NVIDIAGeForceRTX2080.fp16.1.1_101
