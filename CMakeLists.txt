@@ -17,6 +17,10 @@ set(fmt_DIR "E:/do2024/fmt-11.0.1/out/build/x64-Release")
 set(spglog_INCLUDE_DIRS "E:/do2024/spdlog-1.x/include")
 set(TensorRT_DIR "E:/do2025/TensorRT-10.13.3.9")
 
+# Add deps directory for httplib
+set(DEPS_DIR "${CMAKE_SOURCE_DIR}/deps")
+set(JSON_DIR "${CMAKE_SOURCE_DIR}/deps/json/include")
+
 # Use the correct version of CUDA
 #set(CUDA_TOOLKIT_ROOT_DIR /usr/local/cuda)
 # We require CUDA, OpenCV, and TensorRT
@@ -25,13 +29,81 @@ find_package(CUDA REQUIRED)
 find_package(OpenCV REQUIRED)
 find_package(fmt REQUIRED)
 
+# Create library for TensorRT C++ API
 add_library(tensorrt_cpp_api SHARED
         src/engine.cpp)
 
-target_include_directories(tensorrt_cpp_api PUBLIC ${OpenCV_INCLUDE_DIRS} ${CUDA_INCLUDE_DIRS} ${TensorRT_INCLUDE_DIRS} ${spglog_INCLUDE_DIRS} include include/interfaces)
-target_link_libraries(tensorrt_cpp_api PUBLIC ${OpenCV_LIBS} ${CUDA_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${TensorRT_LIBRARIES} ${spglog_LIBRARIES} fmt::fmt)
+target_include_directories(tensorrt_cpp_api PUBLIC 
+    ${OpenCV_INCLUDE_DIRS} 
+    ${CUDA_INCLUDE_DIRS} 
+    ${TensorRT_INCLUDE_DIRS} 
+    ${spglog_INCLUDE_DIRS} 
+    include 
+    include/interfaces
+    ${DEPS_DIR}
+    ${JSON_DIR}
+)
+target_link_libraries(tensorrt_cpp_api PUBLIC 
+    ${OpenCV_LIBS} 
+    ${CUDA_LIBRARIES} 
+    ${CMAKE_THREAD_LIBS_INIT} 
+    ${TensorRT_LIBRARIES} 
+    ${spglog_LIBRARIES} 
+    fmt::fmt
+)
 
-add_executable(run_inference_benchmark src/main.cpp src/det.cpp src/engine.cpp src/preprocess_op.cpp src/postprocess_op.cpp src/rec.cpp src/ocr.cpp src/utility.cpp  src/clipper.cpp)
-target_include_directories(run_inference_benchmark PUBLIC ${OpenCV_INCLUDE_DIRS} ${CUDA_INCLUDE_DIRS} ${TensorRT_INCLUDE_DIRS} ${spglog_INCLUDE_DIRS} include include/interfaces)
-#src/ocr.cpp src/rec.cpp src/utility.cpp src/clipper.cpp
+# Main benchmark executable
+add_executable(run_inference_benchmark 
+    src/main.cpp 
+    src/det.cpp 
+    src/engine.cpp 
+    src/preprocess_op.cpp 
+    src/postprocess_op.cpp 
+    src/rec.cpp 
+    src/ocr.cpp 
+    src/utility.cpp  
+    src/clipper.cpp
+    src/cmd_line_parser.cpp
+    src/config_loader.cpp
+)
+target_include_directories(run_inference_benchmark PUBLIC 
+    ${OpenCV_INCLUDE_DIRS} 
+    ${CUDA_INCLUDE_DIRS} 
+    ${TensorRT_INCLUDE_DIRS} 
+    ${spglog_INCLUDE_DIRS} 
+    include 
+    include/interfaces
+    ${DEPS_DIR}
+    ${JSON_DIR}
+)
 target_link_libraries(run_inference_benchmark tensorrt_cpp_api fmt::fmt)
+
+# New OCR service executable with HTTP API
+add_executable(ocr_service 
+    src/service_main.cpp
+    src/ocr_service.cpp
+    src/det.cpp 
+    src/engine.cpp 
+    src/preprocess_op.cpp 
+    src/postprocess_op.cpp 
+    src/rec.cpp 
+    src/ocr.cpp 
+    src/utility.cpp  
+    src/clipper.cpp
+    src/cmd_line_parser.cpp
+    src/config_loader.cpp
+)
+target_include_directories(ocr_service PUBLIC 
+    ${OpenCV_INCLUDE_DIRS} 
+    ${CUDA_INCLUDE_DIRS} 
+    ${TensorRT_INCLUDE_DIRS} 
+    ${spglog_INCLUDE_DIRS}
+    ${DEPS_DIR}
+    ${JSON_DIR}
+    include 
+    include/interfaces
+)
+target_link_libraries(ocr_service 
+    tensorrt_cpp_api 
+    fmt::fmt
+)

@@ -52,38 +52,39 @@ void Normalize::Run(cv::cuda::GpuMat &im, const std::array<float, 3> &mean, cons
 
 
 
-void ResizeImgType0::Run(const cv::cuda::GpuMat &img, cv::cuda::GpuMat &resize_img, int max_size_len, float &ratio_h, float &ratio_w) {
+void ResizeImgType0::Run(const cv::cuda::GpuMat &img, cv::cuda::GpuMat &resize_img, int max_size_len, int min_size_len, float &ratio_h, float &ratio_w) {
 
     int resize_w;
     int resize_h;
 
-    get_resize_ratio(img.cols, img.rows, max_size_len, resize_h, resize_w);
+    get_resize_ratio(img.cols, img.rows, max_size_len, min_size_len, resize_h, resize_w);
 
     cv::cuda::resize(img, resize_img, cv::Size(resize_w, resize_h));
     ratio_h = float(resize_h) / float(img.rows);
     ratio_w = float(resize_w) / float(img.cols);
 }
 
-void ResizeImgType0_Cpu::Run(const cv::Mat &img, cv::Mat &resize_img, int max_size_len, float &ratio_h, float &ratio_w) {
+void ResizeImgType0_Cpu::Run(const cv::Mat &img, cv::Mat &resize_img, int max_size_len, int min_size_len, float &ratio_h, float &ratio_w) {
 
     int resize_w;
     int resize_h;
 
-    get_resize_ratio(img.cols, img.rows, max_size_len, resize_h, resize_w);
+    get_resize_ratio(img.cols, img.rows, max_size_len, min_size_len, resize_h, resize_w);
 
     cv::resize(img, resize_img, cv::Size(resize_w, resize_h));
     ratio_h = float(resize_h) / float(img.rows);
     ratio_w = float(resize_w) / float(img.cols);
 }
 
-void CrnnResizeImg::Run(const cv::cuda::GpuMat &img, cv::cuda::GpuMat &resize_img, float wh_ratio,
+void CrnnResizeImg::Run(const cv::cuda::GpuMat &img, cv::cuda::GpuMat &resize_img, int base_size, float wh_ratio,
                         const std::array<int, 3> &rec_image_shape) {
     int imgC, imgH, imgW;
     imgC = rec_image_shape[0];
     imgH = rec_image_shape[1];
     imgW = rec_image_shape[2];
 
-    imgW = int(48 * wh_ratio);
+    // Use MIN_DIMS_ and MAX_DIMS_ instead of hard-coded values
+    imgW = int(base_size * wh_ratio);
 
     float ratio = float(img.cols) / float(img.rows);
     int resize_w, resize_h;

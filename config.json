@@ -1,0 +1,11 @@
+{
+  "model_dir": "E:/do2024/others/PaddleOCRV4-TensorRT/models",
+  "det_trt_model": "{model_dir}/det_model.trt",
+  "det_onnx_model": "{model_dir}/det_model.onnx",
+  "rec_trt_model": "{model_dir}/rec_model.trt",
+  "rec_onnx_model": "{model_dir}/rec_model.onnx",
+  "label_file": "{model_dir}/ppocr_keys_v1.txt",
+  "default_port": 7000,
+  "log_level": "info",
+  "use_onnx": true
+}

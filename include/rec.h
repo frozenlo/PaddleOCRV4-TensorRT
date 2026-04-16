@@ -20,18 +20,34 @@ namespace OCR {
 
 class TextRec: public Engine<float>{
 public:
-    TextRec() : Engine() {
+    TextRec(const std::string& label_path) : Engine(), label_path_(label_path) {
         this->m_options.MIN_DIMS_ = {1, 3, 48, 48};
         this->m_options.OPT_DIMS_ = {1, 3, 48, 320};
         this->m_options.MAX_DIMS_ = {8, 3, 48, 2000};
-			if (!std::filesystem::exists(this->label_path)) {
-				std::string msg = fmt::format("Dict not exist! path=>{}", this->label_path);
+			if (!std::filesystem::exists(this->label_path_)) {
+				std::string msg = fmt::format("Dict not exist! path=>{}", this->label_path_);
 				throw std::runtime_error(msg);
 			}
-        this->label_list_ = Utility::ReadDict(this->label_path);
+        this->label_list_ = Utility::ReadDict(this->label_path_);
         this->label_list_.insert(this->label_list_.begin(), "#"); // blank char for ctc
         this->label_list_.push_back(" ");
     };
+    
+    TextRec() : Engine() {
+        // Default constructor uses default label path
+        this->label_path_ = "../models/ppocr_keys_v1.txt";
+        this->m_options.MIN_DIMS_ = {1, 3, 48, 48};
+        this->m_options.OPT_DIMS_ = {1, 3, 48, 320};
+        this->m_options.MAX_DIMS_ = {8, 3, 48, 2000};
+        if (!std::filesystem::exists(this->label_path_)) {
+            std::string msg = fmt::format("Dict not exist! path=>{}", this->label_path_);
+            throw std::runtime_error(msg);
+        }
+        this->label_list_ = Utility::ReadDict(this->label_path_);
+        this->label_list_.insert(this->label_list_.begin(), "#"); // blank char for ctc
+        this->label_list_.push_back(" ");
+    };
+    
     void Model_Init(std::string_view det_engine_path, std::string_view det_onnx_path);
 		void Model_Infer(std::vector<cv::cuda::GpuMat>& img_list, std::vector<std::pair<std::vector<std::string>, double>>& rec_res, std::vector<int>& idx_map,
 			std::vector<double>* times);
@@ -44,9 +60,7 @@ public:
 private:
     //task
     std::vector<std::string> label_list_;
-    //std::string label_path = "../../../models/en_dict.txt";
-    std::string label_path = "../../../models/ppocr_keys_v1.txt";
-
+    std::string label_path_;
 
     // input image
     int rec_batch_num_=6;

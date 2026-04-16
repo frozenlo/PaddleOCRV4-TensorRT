@@ -1,5 +1,6 @@
 #pragma once
 #include "rec.h"
+#include "cmd_line_parser.h"
 #include "logger.h"
 
 
@@ -39,7 +40,7 @@ namespace OCR {
     float TextRec::Model_Infer(const cv::cuda::GpuMat& img, std::string& text){
         cv::cuda::GpuMat resize_img;
         float max_wh_ratio = img.cols / (float)img.rows;
-        this->resize_op_.Run(img, resize_img, max_wh_ratio);
+        this->resize_op_.Run(img, resize_img, this->m_options.MIN_DIMS_[3], max_wh_ratio);
         this->normalize_op_.Run(resize_img, this->mean_, this->scale_, true);
         this->permute_op_.Run(resize_img);
         int batch_width = int(m_options.OPT_DIMS_[2] * max_wh_ratio); // 这个batch里图像的宽度
@@ -135,7 +136,7 @@ namespace OCR {
             std::vector<cv::cuda::GpuMat> norm_img_batch;
             for (int ino = begin_img; ino < end_img; ino++) {
                 cv::cuda::GpuMat resize_img;
-                this->resize_op_.Run(img_list[indices[ino]], resize_img, max_wh_ratio);
+                this->resize_op_.Run(img_list[indices[ino]], resize_img, this->m_options.MIN_DIMS_[3], max_wh_ratio);
                 this->normalize_op_.Run(resize_img, this->mean_, this->scale_, true);
                 norm_img_batch.push_back(resize_img);
             } // 将一个batch里的img按照最大宽高比resize到高为48，宽为48*max_wh_ratio，并分别做归一化。
@@ -145,7 +146,7 @@ namespace OCR {
 
             // 为buffer[0]指针（输入）定义空间大小
             // int batch_width = 1999;
-            int batch_width = int(m_options.OPT_DIMS_[2] * max_wh_ratio); // 这个batch里图像的宽度
+            int batch_width = std::max(int(m_options.OPT_DIMS_[2] * max_wh_ratio), m_options.OPT_DIMS_[2]); // 这个batch里图像的宽度
             cv::cuda::GpuMat dest;
             this->permute_batch_op_.Run(norm_img_batch, dest);
 

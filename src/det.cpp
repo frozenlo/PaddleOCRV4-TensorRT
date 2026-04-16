@@ -6,6 +6,7 @@ namespace OCR {
         bool succ = false;
         if (!det_engine_path.empty()) {
             if (Util::doesFileExist(det_engine_path.data())) {
+                spdlog::info("Loading TensorRT engine from file {}", det_engine_path.data());
                 succ = this->loadNetwork(det_engine_path.data());
                 if (!succ) {
                     throw std::runtime_error("Unable to build or load TensorRT engine.");
@@ -44,7 +45,7 @@ namespace OCR {
         resize_op_cpu.Run(img, tmp, this->max_side_len_, ratio_h, ratio_w);
         resizedImg.upload(tmp);*/
 
-        this->resize_op_.Run(gpuImg, resizedImg, this->max_side_len_, ratio_h, ratio_w);
+        this->resize_op_.Run(gpuImg, resizedImg, this->max_side_len_, this->m_options.MIN_DIMS_[3], ratio_h, ratio_w);
 
         this->normalize_op_.Run(resizedImg, this->mean_, this->scale_, true);
         this->permute_op_.Run(resizedImg);
@@ -143,7 +144,5 @@ namespace OCR {
                 times->at(2) += double(postprocess_diff.count());
             }
         }
-        
-
     }
 }

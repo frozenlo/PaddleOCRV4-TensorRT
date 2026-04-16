@@ -1,17 +1,32 @@
-#pragma once
 #include "ocr.h"
-# include <stdio.h>
 
-
-void ocr::Model_Init(std::string det_engine_path, std::string det_onnx_path, std::string rec_engine_path, std::string rec_onnx_path) {
+ocr::ocr(const std::string& label_path) {
+    this->tr = new TextRec(label_path);
     this->td = new TextDetect();
-    this->tr = new TextRec();
-    this->td->Model_Init(det_engine_path, det_onnx_path);
-    this->tr->Model_Init(rec_engine_path, rec_onnx_path);
 }
 
-std::vector<std::pair<std::vector<std::string>, double>> ocr::Model_Infer(cv::Mat &inputImg, std::vector<double> &ocr_times) {
+ocr::ocr() {
+    // Default constructor - will be initialized with label path from config later
+    this->tr = nullptr;
+    this->td = nullptr;
+}
 
+void ocr::Model_Init(std::string det_model_path, std::string det_onnx_path, std::string rec_model_path, std::string rec_onnx_path) {
+    // Only initialize if not already done
+    if (this->td == nullptr) {
+        this->td = new TextDetect();
+    }
+    
+    if (this->tr == nullptr) {
+        // Use default label path if not specified
+        this->tr = new TextRec();
+    }
+    
+    this->td->Model_Init(det_model_path, det_onnx_path);
+    this->tr->Model_Init(rec_model_path, rec_onnx_path);
+}
+
+std::vector<TextResult> ocr::Model_Infer(cv::Mat &inputImg, std::vector<double> &ocr_times) {
     if (inputImg.channels() == 4) {
         cv::Mat _chs[4];
         split(inputImg, _chs);
@@ -54,26 +69,26 @@ std::vector<std::pair<std::vector<std::string>, double>> ocr::Model_Infer(cv::Ma
     std::vector<int> idx_map;
     std::vector<std::pair<std::vector<std::string>, double>> rec_res;
 
-    for (int i = 0; i < 50; ++i) {
-        idx_map.clear();
-        boxes.clear();
-        rec_res.clear();
+    //for (int i = 0; i < 50; ++i) {
+    //    idx_map.clear();
+    //    boxes.clear();
+    //    rec_res.clear();
 
-        this->td->Model_Infer(gpuImg, boxes, NULL);
-        std::vector<cv::cuda::GpuMat> img_list;
-        for (int j = 0; j < boxes.size(); j++) {
-            cv::cuda::GpuMat crop_img;
-            crop_img = Utility::GetRotateCropImage(gpuImg, boxes[j]);
-            img_list.push_back(crop_img);
-        }
+    //    this->td->Model_Infer(gpuImg, boxes, NULL);
+    //    std::vector<cv::cuda::GpuMat> img_list;
+    //    for (int j = 0; j < boxes.size(); j++) {
+    //        cv::cuda::GpuMat crop_img;
+    //        crop_img = Utility::GetRotateCropImage(gpuImg, boxes[j]);
+    //        img_list.push_back(crop_img);
+    //    }
   
-        this->tr->Model_Infer(img_list, rec_res, idx_map, NULL);
-    }
+    //    this->tr->Model_Infer(img_list, rec_res, idx_map, NULL);
+    //}
 
-    det_times.clear();
-    rec_times.clear();
+    //det_times.clear();
+    //rec_times.clear();
 
-    for (int i = 0; i < 1000; ++i) {
+    //for (int i = 0; i < 1; ++i) {
         idx_map.clear();
         boxes.clear();
         rec_res.clear();
@@ -97,7 +112,7 @@ std::vector<std::pair<std::vector<std::string>, double>> ocr::Model_Infer(cv::Ma
         // cout<<"finish detect"<<endl;
 
         this->tr->Model_Infer(img_list, rec_res, idx_map, &rec_times);
-    }
+    //}
     
     // 根据idx_map调整boxes的顺序， 并删除掉boxes中识别结果为空的box
     // cout<<"origin box size is "<< boxes.size()<<endl;
@@ -121,10 +136,10 @@ std::vector<std::pair<std::vector<std::string>, double>> ocr::Model_Infer(cv::Ma
     }
 
     //// visualization
-    std::string img_name = std::to_string(this->count_name_) + ".png";
-    if (this->visualize_) {
-        Utility::VisualizeBboxes(inputImg, erase_nan_boxes, rec_res, img_name); // 名字可变
-    }
+    //std::string img_name = std::to_string(this->count_name_) + ".png";
+    //if (this->visualize_) {
+    //    Utility::VisualizeBboxes(inputImg, erase_nan_boxes, rec_res, img_name); // 名字可变
+    //}
     // cout<<"finish visual"<<endl;
     this->count_name_++;
     if (this->count_name_ % 100000 == 0)
@@ -132,7 +147,23 @@ std::vector<std::pair<std::vector<std::string>, double>> ocr::Model_Infer(cv::Ma
 
     gpuImg.release();
 
-    return rec_res;
+    // Combine boxes with recognition results
+    std::vector<TextResult> combined_results;
+    for (size_t i = 0; i < idx_map.size() && i < rec_res.size(); ++i) {
+        TextResult result;
+        // Join all texts into a single string
+        std::string joined_text;
+        for (size_t j = 0; j < rec_res[i].first.size(); ++j) {
+            //if (j > 0) joined_text += " ";
+            joined_text += rec_res[i].first[j];
+        }
+        result.text = joined_text;
+        result.confidence = rec_res[i].second;
+        result.box = erase_nan_boxes[i];
+        combined_results.push_back(result);
+    }
+
+    return combined_results;
 }
 
 bool isNumber(const std::string &str) {
